@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadvisor
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+    - name: cadvisor
+      port: 8080
+      nodePort: 31250
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    name: cadvisor
+  sessionAffinity: None

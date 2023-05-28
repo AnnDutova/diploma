@@ -1,0 +1,18 @@
+DB:
+  dbHost: "patroni-psql"
+  dbPort: "5432"
+  dbName: "testdb"
+  dbUsername: "postgres"
+  dbPassword: "zalando"
+  path: "/dump"
+
+Minio:
+  minioEndpoint: "minio-service"
+  minioPort: "9000"
+  minioAccessKey: "minioadmin"
+  minioSecretKey: "minioadmin"
+  minioSSL: "false"
+  minioBucket: "backups"
+
+Server:
+  Port: ":5000"

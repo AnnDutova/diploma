@@ -1,0 +1,25 @@
+FROM golang:1.19-alpine3.17
+
+ENV GOPATH="/usr/share/go"
+ENV GOROOT="/usr/local/go"
+ENV GOCACHE="$GOPATH/.cache/go-build"
+ENV GOENV="$GOPATH/.cache/go/env"
+
+RUN apk add --no-cache postgresql-client
+
+RUN mkdir -p /opt/app/service
+WORKDIR /opt/app/
+
+COPY service/go.mod service/
+COPY service/go.sum service/
+
+RUN cd ./service && go mod download
+
+WORKDIR /opt/app/service
+COPY /service .
+
+RUN CGO_ENABLED=0 go build -o backup ./cmd/main.go
+
+EXPOSE 5000
+
+CMD [ "./backup" ]

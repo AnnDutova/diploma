@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: create-backup
+spec:
+  schedule: '@midnight'
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: pg-dump
+              image: kubectl_curl
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: POSTGRES_USER
+                  value: 'postgres'
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: patroni-secret
+                      key: superuser-password
+                - name: POSTGRES_DB
+                  value: testdb
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  timestamp=$(date +%Y%m%d%H%M%S)
+                  kubectl exec --tty patroni-psql-0 -- bash -c "PGPASSWORD=$POSTGRES_PASSWORD pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -f /dump/pg_dump_$timestamp.sql"
+                  kubectl exec --tty patroni-psql-0 -- bash -c "find /dump -type f ! -name 'pg_dump_$timestamp.sql' -delete"
+                  curl http://backup-service:5000/?dump=pg_dump_$timestamp.sql
+              volumeMounts:
+                - name: pg-dump-data
+                  mountPath: "/dump"
+          volumes:
+            - name: pg-dump-data
+              persistentVolumeClaim:
+                claimName: pg-dump-pvc
+          restartPolicy: OnFailure

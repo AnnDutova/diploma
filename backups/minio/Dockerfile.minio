@@ -1,0 +1,4 @@
+FROM minio/mc:latest
+
+COPY minio/entrypoint.sh /data/entrypoint.sh
+ENTRYPOINT /bin/sh -c /data/entrypoint.sh

@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: patroni-psql
+  labels:
+    application: patroni
+spec:
+  replicas: 3
+  serviceName: patroni-psql
+  selector:
+    matchLabels:
+      application: patroni
+  template:
+    metadata:
+      labels:
+        application: patroni
+    spec:
+      serviceAccountName: patroni-psql
+      initContainers:
+        - name: init-mkdir
+          image: busybox
+          command: [ 'sh', '-c', 'mkdir -p /dump && chmod 777 /dump' ]
+          volumeMounts:
+            - name: pg-dump-data
+              mountPath: "/dump"
+      containers:
+        - name: patroni-psql
+          image: patroni
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /readiness
+              port: 8008
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - containerPort: 8008
+              protocol: TCP
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - name: pgdata
+              mountPath: /home/postgres/pgdata
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+            - name: pg-dump-data
+              mountPath: "/dump"
+          env:
+            - name: PATRONI_KUBERNETES_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: PATRONI_KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: PATRONI_KUBERNETES_BYPASS_API_SERVICE
+              value: 'true'
+            - name: PATRONI_KUBERNETES_USE_ENDPOINTS
+              value: 'true'
+            - name: PATRONI_KUBERNETES_LABELS
+              value: '{application: patroni, cluster-name: patroni-psql}'
+            - name: PATRONI_SUPERUSER_USERNAME
+              value: postgres
+            - name: PATRONI_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: patroni-secret
+                  key: superuser-password
+            - name: PATRONI_REPLICATION_USERNAME
+              value: standby
+            - name: PATRONI_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: patroni-secret
+                  key: replication-password
+            - name: PATRONI_SCOPE
+              value: patroni-psql
+            - name: PATRONI_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: PATRONI_POSTGRESQL_DATA_DIR
+              value: /home/postgres/pgdata/pgroot/data
+            - name: PATRONI_POSTGRESQL_PGPASS
+              value: /tmp/pgpass
+            - name: PATRONI_POSTGRESQL_LISTEN
+              value: '0.0.0.0:5432'
+            - name: PATRONI_RESTAPI_LISTEN
+              value: '0.0.0.0:8008'
+            - name: PATRONI_DCS
+              value: "consul"
+            - name: PATRONI_DCS_PREFIX
+              value: "patroni"
+            - name: PATRONI_DCS_SERVICE
+              value: "consul"
+            - name: PATRONI_CONSUL_HOST
+              value: "consul"
+            - name: PATRONI_CONSUL_PORT
+              value: "8500"
+      terminationGracePeriodSeconds: 0
+      volumes:
+        - name: init
+          configMap:
+            name: init-config
+        - name: pg-dump-data
+          persistentVolumeClaim:
+            claimName: pg-dump-pvc
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi

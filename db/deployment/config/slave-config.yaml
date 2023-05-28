@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slave-config
+data:
+  init-slave.sh: |
+    pg_ctl -D /var/lib/postgresql/data/ -m fast -w stop
+    rm -rf /var/lib/postgresql/data/*
+    PGPASSWORD=postgres pg_basebackup -h postgres-db-0.db-service -w -U replicator -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+    pg_ctl -D /var/lib/postgresql/data/ -w start

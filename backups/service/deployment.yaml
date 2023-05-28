@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backup-deployment
+  namespace: default
+  labels:
+    app: backup-server
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: backup-server
+  template:
+    metadata:
+      labels:
+        app: backup-server
+    spec:
+      containers:
+        - name: backup-manager
+          image: backup
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: pg-dump-data
+              mountPath: "/dump"
+      volumes:
+        - name: pg-dump-data
+          persistentVolumeClaim:
+            claimName: pg-dump-pvc

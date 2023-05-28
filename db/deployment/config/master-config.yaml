@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: master-config
+data:
+  init-master.sh: |
+    echo "host    replication     all     all     md5" >> /var/lib/postgresql/data/pg_hba.conf
+    echo "archive_mode = on"  >> /etc/postgresql/postgresql.conf
+    echo "archive_mode = on"  >> /etc/postgresql/postgresql.conf
+    echo "archive_command = '/bin/true'"  >> /etc/postgresql/postgresql.conf
+    echo "archive_timeout = 0"  >> /etc/postgresql/postgresql.conf
+    echo "max_wal_senders = 8"  >> /etc/postgresql/postgresql.conf
+    echo "wal_keep_segments = 32"  >> /etc/postgresql/postgresql.conf
+    echo "wal_level = replica"  >> /etc/postgresql/postgresql.conf
+    echo "hot_standby = on"  >> /etc/postgresql/postgresql.conf

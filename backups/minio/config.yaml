@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-config
+data:
+  MINIO_ACCESS_KEY: "minioadmin"
+  MINIO_SECRET_KEY: "minioadmin"
+  MINIO_ROOT_USER: "minioadmin"
+  BUCKET_NAME: "backups"
+  ENDPOINT: "http://minio-service:9000"
