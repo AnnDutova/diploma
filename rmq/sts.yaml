@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: rmq
-          image: rabbitmq:3.11.16-management
+          image: rabbitmq:3-management
           env:
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
@@ -28,35 +28,27 @@ spec:
                   name: rmq-config
                   key: USER_PASS
           volumeMounts:
-            - name: config-volume
-              mountPath: /etc/rabbitmq
+            - mountPath: /var/lib/rabbitmq
+              name: rabbitmq-data
           ports:
             - containerPort: 5672
               name: amqp
             - containerPort: 15672
-              name: management
+              name: http
           readinessProbe:
             exec:
-              command:
-                - sh
-                - -c
-                - rabbitmq-diagnostics -q check_running
-            initialDelaySeconds: 60
-          livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - rabbitmq-diagnostics -q check_running
-                - rabbitmq-diagnostics -q check_local_alarms
+              command: ["rabbitmq-diagnostics", "ping"]
             initialDelaySeconds: 60
             periodSeconds: 60
+            timeoutSeconds: 10
+          livenessProbe:
+            exec:
+              command: [ "rabbitmq-diagnostics", "status" ]
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 15
       volumes:
-        - name: config-volume
-          configMap:
-            name: rabbitmq-config
-            items:
-              - key: rabbitmq.conf
-                path: rabbitmq.conf
-              - key: enabled_plugins
-                path: enabled_plugins
+        - name: rabbitmq-data
+          hostPath:
+            path: /data/rabbitmq
+            type: DirectoryOrCreate
