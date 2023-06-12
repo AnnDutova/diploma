@@ -1,17 +1,5 @@
 PWD = $(shell pwd)
 
-configmap:
-	kubectl create configmap init-config --from-file=db-init-scripts/common/ --from-file=db-init-scripts/single/
-	kubectl apply -f deployment/config/configmap.yaml
-	kubectl apply -f deployment/config/master-config.yaml
-	kubectl apply -f deployment/config/slave-config.yaml
-
-delete-conf:
-	kubectl delete configmap init-config
-	kubectl delete configmap  db-config
-	kubectl delete configmap master-config
-	kubectl delete configmap slave-config
-
 master: configmap
 	kubectl apply -f deployment/sts/sts-master.yaml
 	kubectl apply -f deployment/service/service-master.yaml
@@ -28,7 +16,19 @@ delete-slave:
 	kubectl delete statefulset.apps/postgres-db-slave
 	kubectl delete service/db-service-replica
 
-patroni-test:
+configmap:
+	kubectl create configmap init-config --from-file=db-init-scripts/common/ --from-file=db-init-scripts/single/
+	kubectl apply -f deployment/config/configmap.yaml
+	kubectl apply -f deployment/config/master-config.yaml
+	kubectl apply -f deployment/config/slave-config.yaml
+
+delete-conf:
+	kubectl delete configmap init-config
+	kubectl delete configmap  db-config
+	kubectl delete configmap master-config
+	kubectl delete configmap slave-config
+
+patroni-run:
 	docker build -t patroni -f patroni/Dockerfile.patroni .
 	kubectl create configmap init-config --from-file=db-init-scripts/common
 	kubectl apply -f patroni/service-acc.yaml
